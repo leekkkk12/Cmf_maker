@@ -1,8 +1,7 @@
 import './style.css'
 
-// Gemini API 설정 (나노바나나)
-const GEMINI_API_KEY = 'AIzaSyBy834fThh6Pm5k0wci0C06qPjhhgQYTBc'
-const GEMINI_IMAGE_GEN_URL = 'https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:generateImage'
+// API 엔드포인트 (Vercel 서버리스 함수 사용)
+const IMAGE_GENERATION_API = '/api/generate-image'
 
 // 전역 상태
 let uploadedImage = null
@@ -195,7 +194,7 @@ async function generateMaterialComposition() {
     downloadBtn.style.display = 'inline-block'
 
     // 성공 메시지
-    showNotification('소재 이미지 생성이 완료되었습니다! 🎨', 'success')
+    showNotification('AI 이미지 생성이 완료되었습니다! 🎨', 'success')
 
   } catch (error) {
     console.error('AI 생성 오류:', error)
@@ -235,11 +234,34 @@ perfect lighting and shadows, detailed surface texture.
 Style: Modern, elegant, minimalist product photography, luxury design aesthetic.`
 }
 
-// 이미지 생성 (Canvas 기반)
+// Gemini API를 통한 이미지 생성 (서버리스 함수 사용)
 async function generateImageWithGemini(prompt) {
-  // CORS 문제로 인해 Canvas 기반 이미지 생성 사용
-  console.log('Canvas 기반 이미지 생성 시작:', prompt)
-  return await generateEnhancedMaterialImage(selectedMaterial)
+  try {
+    console.log('Gemini API 이미지 생성 시작:', prompt)
+    
+    const response = await fetch(IMAGE_GENERATION_API, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ prompt })
+    })
+
+    const data = await response.json()
+
+    if (!data.success) {
+      throw new Error(data.error || '서버 오류')
+    }
+
+    // base64 이미지를 blob URL로 변환
+    const blob = base64ToBlob(data.imageData, 'image/jpeg')
+    return URL.createObjectURL(blob)
+
+  } catch (error) {
+    console.error('Gemini API 오류, Canvas 대체 생성 사용:', error)
+    // 실패 시 Canvas 기반 이미지 생성으로 대체
+    return await generateEnhancedMaterialImage(selectedMaterial)
+  }
 }
 
 // base64를 blob으로 변환
@@ -556,9 +578,9 @@ async function displayGeneratedImage(imageUrl) {
   materialInfo.className = 'ai-description-overlay'
   materialInfo.innerHTML = `
     <div class="description-content">
-      <h4>CMF 디자인 생성 완료</h4>
+      <h4>AI CMF 디자인 생성 완료</h4>
       <p>적용된 소재: <strong>${getMaterialName(selectedMaterial)}</strong></p>
-      <p>Canvas 기술로 ${getMaterialName(selectedMaterial)} 질감을 적용한 제품 이미지를 생성했습니다.</p>
+      <p>Gemini AI가 ${getMaterialName(selectedMaterial)} 질감을 적용한 제품 이미지를 생성했습니다.</p>
       <p class="tech-note">※ 실제 제품 제작 시 참고용 디자인입니다.</p>
     </div>
   `
