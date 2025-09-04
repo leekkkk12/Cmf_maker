@@ -55,14 +55,25 @@ export default async function handler(req, res) {
     // 모델에서 generateContent 호출
     const response = await model.generateContent(prompt)
 
-    console.log('API 응답 받음, 후보자 수:', response.candidates?.length)
+    // 전체 응답 구조 로깅
+    console.log('전체 응답 구조:', JSON.stringify(response, null, 2))
+    
+    // response.response 확인 (중첩 구조일 수 있음)
+    const actualResponse = response.response || response
+    console.log('실제 응답:', JSON.stringify(actualResponse, null, 2))
+    
+    console.log('API 응답 받음, 후보자 수:', actualResponse.candidates?.length)
 
-    if (!response.candidates || response.candidates.length === 0) {
+    if (!actualResponse.candidates || actualResponse.candidates.length === 0) {
+      console.error('후보자 없음. 전체 응답:', JSON.stringify(response, null, 2))
       throw new Error('응답에 후보자가 없습니다.')
     }
 
-    const candidate = response.candidates[0]
+    const candidate = actualResponse.candidates[0]
+    console.log('후보자 구조:', JSON.stringify(candidate, null, 2))
+    
     if (!candidate.content || !candidate.content.parts) {
+      console.error('콘텐츠 구조 오류. 후보자:', JSON.stringify(candidate, null, 2))
       throw new Error('응답 구조가 올바르지 않습니다.')
     }
 
@@ -71,6 +82,7 @@ export default async function handler(req, res) {
     // 이미지 데이터 찾기
     let imageData = null
     for (const part of candidate.content.parts) {
+      console.log('파트 구조:', JSON.stringify(part, null, 2))
       if (part.inlineData && part.inlineData.data) {
         imageData = part.inlineData.data
         console.log('이미지 데이터 찾음, 크기:', imageData.length)
