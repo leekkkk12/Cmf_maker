@@ -486,6 +486,13 @@ footer {
     margin-bottom: 0.3rem;
 }
 
+.tech-note {
+    font-size: 0.7rem !important;
+    color: #a0aec0 !important;
+    font-style: italic;
+    margin-top: 0.5rem !important;
+}
+
 /* 실제 이미지 결과 스타일 개선 */
 .result-item {
     position: relative;

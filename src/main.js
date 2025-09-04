@@ -195,12 +195,12 @@ async function generateMaterialComposition() {
     downloadBtn.style.display = 'inline-block'
 
     // 성공 메시지
-    showNotification('AI 합성이 완료되었습니다! 🎉', 'success')
+    showNotification('소재 이미지 생성이 완료되었습니다! 🎨', 'success')
 
   } catch (error) {
     console.error('AI 생성 오류:', error)
     loading.style.display = 'none'
-    showNotification(`AI 합성 중 오류가 발생했습니다: ${error.message}`, 'error')
+    showNotification(`이미지 생성 중 오류가 발생했습니다: ${error.message}`, 'error')
   }
 }
 
@@ -235,54 +235,11 @@ perfect lighting and shadows, detailed surface texture.
 Style: Modern, elegant, minimalist product photography, luxury design aesthetic.`
 }
 
-// Gemini로 이미지 생성
+// 이미지 생성 (Canvas 기반)
 async function generateImageWithGemini(prompt) {
-  const requestBody = {
-    prompt: prompt,
-    sampleCount: 1,
-    aspectRatio: "1:1",
-    safetySettings: [
-      {
-        category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-        threshold: "BLOCK_LOW_AND_ABOVE"
-      },
-      {
-        category: "HARM_CATEGORY_HATE_SPEECH", 
-        threshold: "BLOCK_LOW_AND_ABOVE"
-      }
-    ],
-    personGeneration: "DONT_ALLOW"
-  }
-
-  try {
-    const response = await fetch(`${GEMINI_IMAGE_GEN_URL}?key=${GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody)
-    })
-
-    if (!response.ok) {
-      console.log('이미지 생성 API 오류, 대체 방법 사용')
-      return await generateFallbackImage(prompt)
-    }
-
-    const data = await response.json()
-    
-    if (data.candidates && data.candidates[0] && data.candidates[0].image) {
-      // base64 이미지를 blob URL로 변환
-      const base64Image = data.candidates[0].image.imageBytes
-      const blob = base64ToBlob(base64Image, 'image/jpeg')
-      return URL.createObjectURL(blob)
-    }
-    
-    throw new Error('이미지 생성 응답 형식 오류')
-
-  } catch (error) {
-    console.error('Gemini 이미지 생성 오류:', error)
-    return await generateFallbackImage(prompt)
-  }
+  // CORS 문제로 인해 Canvas 기반 이미지 생성 사용
+  console.log('Canvas 기반 이미지 생성 시작:', prompt)
+  return await generateEnhancedMaterialImage(selectedMaterial)
 }
 
 // base64를 blob으로 변환
@@ -298,63 +255,291 @@ function base64ToBlob(base64, mimeType) {
   return new Blob([arrayBuffer], { type: mimeType })
 }
 
-// 대체 이미지 생성 (CSS로 시뮬레이션)
-async function generateFallbackImage(prompt) {
+// 향상된 소재 이미지 생성
+async function generateEnhancedMaterialImage(material) {
   return new Promise(resolve => {
-    // Canvas로 소재 텍스처 생성
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d')
-    canvas.width = 400
-    canvas.height = 400
+    canvas.width = 512
+    canvas.height = 512
     
-    // 선택된 소재에 따른 패턴 생성
-    const materialPatterns = {
+    // 소재별 정교한 패턴 생성
+    const materialGenerators = {
       wood: () => {
-        const gradient = ctx.createLinearGradient(0, 0, 400, 400)
-        gradient.addColorStop(0, '#8B4513')
-        gradient.addColorStop(1, '#A0522D')
-        ctx.fillStyle = gradient
-        ctx.fillRect(0, 0, 400, 400)
+        // 나무 배경
+        const woodGradient = ctx.createLinearGradient(0, 0, 512, 0)
+        woodGradient.addColorStop(0, '#8B4513')
+        woodGradient.addColorStop(0.3, '#A0522D')
+        woodGradient.addColorStop(0.7, '#CD853F')
+        woodGradient.addColorStop(1, '#D2B48C')
+        ctx.fillStyle = woodGradient
+        ctx.fillRect(0, 0, 512, 512)
         
-        // 나무 결 패턴
-        for (let i = 0; i < 10; i++) {
-          ctx.strokeStyle = `rgba(139, 69, 19, ${0.3 + Math.random() * 0.3})`
-          ctx.lineWidth = 2 + Math.random() * 3
+        // 나무결 효과
+        for (let i = 0; i < 20; i++) {
+          ctx.strokeStyle = `rgba(101, 67, 33, ${0.1 + Math.random() * 0.3})`
+          ctx.lineWidth = 1 + Math.random() * 2
           ctx.beginPath()
-          ctx.moveTo(0, i * 40 + Math.random() * 20)
-          ctx.quadraticCurveTo(200, i * 40 + Math.random() * 40, 400, i * 40 + Math.random() * 20)
+          const y = i * 25 + Math.random() * 10
+          ctx.moveTo(0, y)
+          ctx.quadraticCurveTo(256, y + Math.random() * 20 - 10, 512, y + Math.random() * 15 - 7)
+          ctx.stroke()
+        }
+        
+        // 나무 매듭
+        for (let i = 0; i < 3; i++) {
+          const x = Math.random() * 400 + 56
+          const y = Math.random() * 400 + 56
+          ctx.fillStyle = `rgba(101, 67, 33, 0.4)`
+          ctx.beginPath()
+          ctx.ellipse(x, y, 15 + Math.random() * 10, 8 + Math.random() * 5, 0, 0, 2 * Math.PI)
+          ctx.fill()
+        }
+      },
+      
+      metal: () => {
+        // 금속 배경
+        const metalGradient = ctx.createRadialGradient(256, 256, 0, 256, 256, 300)
+        metalGradient.addColorStop(0, '#F5F5F5')
+        metalGradient.addColorStop(0.3, '#E0E0E0')
+        metalGradient.addColorStop(0.7, '#C0C0C0')
+        metalGradient.addColorStop(1, '#A0A0A0')
+        ctx.fillStyle = metalGradient
+        ctx.fillRect(0, 0, 512, 512)
+        
+        // 금속 반사 효과
+        const reflectionGradient = ctx.createLinearGradient(0, 0, 512, 512)
+        reflectionGradient.addColorStop(0, 'rgba(255, 255, 255, 0.4)')
+        reflectionGradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.1)')
+        reflectionGradient.addColorStop(1, 'rgba(255, 255, 255, 0.3)')
+        ctx.fillStyle = reflectionGradient
+        ctx.fillRect(0, 0, 512, 512)
+        
+        // 브러시 마크
+        for (let i = 0; i < 30; i++) {
+          ctx.strokeStyle = `rgba(255, 255, 255, ${0.1 + Math.random() * 0.1})`
+          ctx.lineWidth = 0.5 + Math.random()
+          ctx.beginPath()
+          ctx.moveTo(Math.random() * 512, 0)
+          ctx.lineTo(Math.random() * 512, 512)
           ctx.stroke()
         }
       },
-      metal: () => {
-        const gradient = ctx.createRadialGradient(200, 200, 0, 200, 200, 200)
-        gradient.addColorStop(0, '#E8E8E8')
-        gradient.addColorStop(0.7, '#C0C0C0')
-        gradient.addColorStop(1, '#808080')
-        ctx.fillStyle = gradient
-        ctx.fillRect(0, 0, 400, 400)
+      
+      fabric: () => {
+        // 패브릭 배경
+        ctx.fillStyle = '#D2B48C'
+        ctx.fillRect(0, 0, 512, 512)
+        
+        // 직조 패턴
+        ctx.strokeStyle = 'rgba(160, 82, 45, 0.3)'
+        ctx.lineWidth = 1
+        
+        // 가로 섬유
+        for (let y = 0; y < 512; y += 4) {
+          ctx.beginPath()
+          ctx.moveTo(0, y)
+          ctx.lineTo(512, y)
+          ctx.stroke()
+        }
+        
+        // 세로 섬유
+        for (let x = 0; x < 512; x += 4) {
+          ctx.beginPath()
+          ctx.moveTo(x, 0)
+          ctx.lineTo(x, 512)
+          ctx.stroke()
+        }
+        
+        // 섬유 질감
+        for (let i = 0; i < 100; i++) {
+          ctx.fillStyle = `rgba(210, 180, 140, ${Math.random() * 0.3})`
+          const size = Math.random() * 3 + 1
+          ctx.fillRect(Math.random() * 512, Math.random() * 512, size, size)
+        }
+      },
+      
+      leather: () => {
+        // 가죽 배경
+        const leatherGradient = ctx.createRadialGradient(256, 256, 0, 256, 256, 300)
+        leatherGradient.addColorStop(0, '#8B4513')
+        leatherGradient.addColorStop(0.5, '#A0522D')
+        leatherGradient.addColorStop(1, '#654321')
+        ctx.fillStyle = leatherGradient
+        ctx.fillRect(0, 0, 512, 512)
+        
+        // 가죽 모공 효과
+        for (let i = 0; i < 200; i++) {
+          ctx.fillStyle = `rgba(101, 67, 33, ${Math.random() * 0.5})`
+          const size = Math.random() * 2 + 0.5
+          ctx.beginPath()
+          ctx.arc(Math.random() * 512, Math.random() * 512, size, 0, 2 * Math.PI)
+          ctx.fill()
+        }
+        
+        // 가죽 주름
+        for (let i = 0; i < 10; i++) {
+          ctx.strokeStyle = `rgba(101, 67, 33, 0.3)`
+          ctx.lineWidth = 1 + Math.random()
+          ctx.beginPath()
+          const startX = Math.random() * 512
+          const startY = Math.random() * 512
+          ctx.moveTo(startX, startY)
+          ctx.quadraticCurveTo(
+            startX + Math.random() * 100 - 50,
+            startY + Math.random() * 100 - 50,
+            startX + Math.random() * 150 - 75,
+            startY + Math.random() * 150 - 75
+          )
+          ctx.stroke()
+        }
+      },
+      
+      marble: () => {
+        // 대리석 배경
+        const marbleGradient = ctx.createLinearGradient(0, 0, 512, 512)
+        marbleGradient.addColorStop(0, '#F5F5DC')
+        marbleGradient.addColorStop(0.3, '#FFFFFF')
+        marbleGradient.addColorStop(0.7, '#E6E6FA')
+        marbleGradient.addColorStop(1, '#D3D3D3')
+        ctx.fillStyle = marbleGradient
+        ctx.fillRect(0, 0, 512, 512)
+        
+        // 대리석 베인
+        for (let i = 0; i < 15; i++) {
+          ctx.strokeStyle = `rgba(169, 169, 169, ${0.2 + Math.random() * 0.3})`
+          ctx.lineWidth = 1 + Math.random() * 3
+          ctx.beginPath()
+          const startX = Math.random() * 512
+          const startY = Math.random() * 512
+          ctx.moveTo(startX, startY)
+          
+          let currentX = startX
+          let currentY = startY
+          for (let j = 0; j < 5; j++) {
+            currentX += Math.random() * 80 - 40
+            currentY += Math.random() * 80 - 40
+            ctx.quadraticCurveTo(
+              currentX + Math.random() * 40 - 20,
+              currentY + Math.random() * 40 - 20,
+              currentX,
+              currentY
+            )
+          }
+          ctx.stroke()
+        }
+      },
+      
+      carbon: () => {
+        // 카본 배경
+        ctx.fillStyle = '#2C2C2C'
+        ctx.fillRect(0, 0, 512, 512)
+        
+        // 카본 섬유 패턴
+        const size = 8
+        for (let x = 0; x < 512; x += size * 2) {
+          for (let y = 0; y < 512; y += size * 2) {
+            // 첫 번째 방향
+            ctx.fillStyle = '#404040'
+            ctx.fillRect(x, y, size, size)
+            ctx.fillRect(x + size, y + size, size, size)
+            
+            // 두 번째 방향
+            ctx.fillStyle = '#1A1A1A'
+            ctx.fillRect(x + size, y, size, size)
+            ctx.fillRect(x, y + size, size, size)
+          }
+        }
+        
+        // 카본 섬유 광택
+        for (let i = 0; i < 20; i++) {
+          ctx.strokeStyle = `rgba(255, 255, 255, ${Math.random() * 0.1})`
+          ctx.lineWidth = 0.5
+          ctx.beginPath()
+          ctx.moveTo(Math.random() * 512, 0)
+          ctx.lineTo(Math.random() * 512, 512)
+          ctx.stroke()
+        }
       }
     }
     
-    // 기본 패턴
-    ctx.fillStyle = '#f0f0f0'
-    ctx.fillRect(0, 0, 400, 400)
-    
-    // 소재별 패턴 적용
-    if (materialPatterns[selectedMaterial]) {
-      materialPatterns[selectedMaterial]()
+    // 소재별 패턴 생성
+    if (materialGenerators[material]) {
+      materialGenerators[material]()
+    } else {
+      // 기본 패턴
+      ctx.fillStyle = '#F0F0F0'
+      ctx.fillRect(0, 0, 512, 512)
     }
     
-    // 텍스트 오버레이
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)'
-    ctx.font = 'bold 24px Arial'
-    ctx.textAlign = 'center'
-    ctx.fillText(`AI Generated: ${getMaterialName(selectedMaterial)}`, 200, 200)
+    // 제품 실루엣 (예: 스마트폰 형태)
+    drawProductSilhouette(ctx, material)
     
     canvas.toBlob(blob => {
       resolve(URL.createObjectURL(blob))
-    }, 'image/jpeg', 0.8)
+    }, 'image/jpeg', 0.9)
   })
+}
+
+// 제품 실루엣 그리기
+function drawProductSilhouette(ctx, material) {
+  const centerX = 256
+  const centerY = 256
+  const width = 150
+  const height = 280
+  const cornerRadius = 20
+  
+  // 제품 그림자
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.1)'
+  drawRoundedRect(ctx, centerX - width/2 + 5, centerY - height/2 + 5, width, height, cornerRadius)
+  ctx.fill()
+  
+  // 제품 본체
+  ctx.fillStyle = getProductColor(material)
+  drawRoundedRect(ctx, centerX - width/2, centerY - height/2, width, height, cornerRadius)
+  ctx.fill()
+  
+  // 제품 하이라이트
+  const gradient = ctx.createLinearGradient(centerX - width/2, centerY - height/2, centerX + width/2, centerY + height/2)
+  gradient.addColorStop(0, 'rgba(255, 255, 255, 0.3)')
+  gradient.addColorStop(1, 'rgba(255, 255, 255, 0.1)')
+  ctx.fillStyle = gradient
+  drawRoundedRect(ctx, centerX - width/2, centerY - height/2, width, height, cornerRadius)
+  ctx.fill()
+  
+  // 제품 테두리
+  ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)'
+  ctx.lineWidth = 2
+  drawRoundedRect(ctx, centerX - width/2, centerY - height/2, width, height, cornerRadius)
+  ctx.stroke()
+}
+
+// 둥근 사각형 그리기
+function drawRoundedRect(ctx, x, y, width, height, cornerRadius) {
+  ctx.beginPath()
+  ctx.moveTo(x + cornerRadius, y)
+  ctx.lineTo(x + width - cornerRadius, y)
+  ctx.quadraticCurveTo(x + width, y, x + width, y + cornerRadius)
+  ctx.lineTo(x + width, y + height - cornerRadius)
+  ctx.quadraticCurveTo(x + width, y + height, x + width - cornerRadius, y + height)
+  ctx.lineTo(x + cornerRadius, y + height)
+  ctx.quadraticCurveTo(x, y + height, x, y + height - cornerRadius)
+  ctx.lineTo(x, y + cornerRadius)
+  ctx.quadraticCurveTo(x, y, x + cornerRadius, y)
+  ctx.closePath()
+}
+
+// 소재별 제품 색상
+function getProductColor(material) {
+  const colors = {
+    wood: 'rgba(139, 69, 19, 0.8)',
+    metal: 'rgba(192, 192, 192, 0.8)',
+    fabric: 'rgba(210, 180, 140, 0.8)',
+    leather: 'rgba(101, 67, 33, 0.8)',
+    marble: 'rgba(245, 245, 220, 0.8)',
+    carbon: 'rgba(44, 44, 44, 0.8)'
+  }
+  return colors[material] || 'rgba(240, 240, 240, 0.8)'
 }
 
 // 생성된 이미지 표시
@@ -371,9 +556,10 @@ async function displayGeneratedImage(imageUrl) {
   materialInfo.className = 'ai-description-overlay'
   materialInfo.innerHTML = `
     <div class="description-content">
-      <h4>AI 생성 결과</h4>
-      <p>선택한 소재: <strong>${getMaterialName(selectedMaterial)}</strong></p>
-      <p>AI가 ${getMaterialName(selectedMaterial)} 질감을 적용한 제품 이미지를 생성했습니다.</p>
+      <h4>CMF 디자인 생성 완료</h4>
+      <p>적용된 소재: <strong>${getMaterialName(selectedMaterial)}</strong></p>
+      <p>Canvas 기술로 ${getMaterialName(selectedMaterial)} 질감을 적용한 제품 이미지를 생성했습니다.</p>
+      <p class="tech-note">※ 실제 제품 제작 시 참고용 디자인입니다.</p>
     </div>
   `
   
