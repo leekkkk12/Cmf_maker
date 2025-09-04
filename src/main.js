@@ -1,8 +1,7 @@
 import './style.css'
 
-// Gemini 2.5 Flash API 설정 (나노바나나)
+// Gemini API 설정 (나노바나나)
 const GEMINI_API_KEY = 'AIzaSyBy834fThh6Pm5k0wci0C06qPjhhgQYTBc'
-const GEMINI_ANALYSIS_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent'
 const GEMINI_IMAGE_GEN_URL = 'https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:generateImage'
 
 // 전역 상태
@@ -176,20 +175,10 @@ async function generateMaterialComposition() {
     // 로딩 표시
     loading.style.display = 'block'
 
-    // 이미지를 base64로 변환
-    const imageBase64 = await convertImageToBase64(uploadedImage)
-    
-    // 1단계: 이미지 분석
-    const analysisResponse = await callGeminiAnalysis(imageBase64, selectedMaterial)
-    
-    if (analysisResponse.error) {
-      throw new Error(analysisResponse.error)
-    }
+    // 이미지 생성 프롬프트 생성
+    const imagePrompt = generateDirectImagePrompt(selectedMaterial)
 
-    // 2단계: 이미지 생성 프롬프트 생성
-    const imagePrompt = generateImagePrompt(analysisResponse.description, selectedMaterial)
-
-    // 3단계: 실제 이미지 생성
+    // 실제 이미지 생성
     const generatedImageUrl = await generateImageWithGemini(imagePrompt)
     
     if (!generatedImageUrl) {
@@ -200,7 +189,7 @@ async function generateMaterialComposition() {
     loading.style.display = 'none'
 
     // 실제 생성된 이미지 표시
-    await displayGeneratedImage(generatedImageUrl, analysisResponse.description)
+    await displayGeneratedImage(generatedImageUrl)
 
     // 결과 표시
     downloadBtn.style.display = 'inline-block'
@@ -213,126 +202,6 @@ async function generateMaterialComposition() {
     loading.style.display = 'none'
     showNotification(`AI 합성 중 오류가 발생했습니다: ${error.message}`, 'error')
   }
-}
-
-// 이미지를 base64로 변환
-async function convertImageToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      const base64 = reader.result.split(',')[1] // data:image/jpeg;base64, 부분 제거
-      resolve(base64)
-    }
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
-}
-
-// Gemini 분석 API 호출
-async function callGeminiAnalysis(imageBase64, material) {
-  const materialDescriptions = {
-    wood: '자연스러운 목재 질감 (나무결, 갈색 톤, 따뜻한 느낌)',
-    metal: '고급스러운 금속 질감 (반사, 차가운 은색/회색 톤, 매끄러운 표면)',
-    fabric: '부드러운 직물 질감 (섬유 패턴, 부드러운 표면, 자연스러운 색상)',
-    leather: '세련된 가죽 질감 (매끄러운 표면, 깊은 갈색, 고급스러운 느낌)',
-    marble: '고급스러운 대리석 질감 (베이지/흰색, 자연스러운 결, 광택)',
-    carbon: '모던한 카본파이버 (검은색, 격자 패턴, 하이테크 느낌)'
-  }
-
-  const prompt = `이 이미지의 제품을 분석하고, ${materialDescriptions[material]}으로 소재를 변경했을 때의 모습을 자세히 설명해주세요. 
-
-다음 형식으로 답변해주세요:
-1. 원본 제품 분석: 어떤 제품인지, 현재 소재는 무엇인지
-2. 소재 변경 효과: ${material} 소재로 바뀌었을 때의 시각적 변화
-3. 색상 변화: 구체적인 색상 팔레트
-4. 질감 변화: 표면 질감의 변화
-5. 전체적인 느낌: 디자인의 인상 변화
-
-실제 제품 디자인 관점에서 전문적이고 구체적으로 설명해주세요.`
-
-  const requestBody = {
-    contents: [{
-      parts: [
-        { text: prompt },
-        {
-          inline_data: {
-            mime_type: "image/jpeg",
-            data: imageBase64
-          }
-        }
-      ]
-    }],
-    generationConfig: {
-      temperature: 0.7,
-      topK: 40,
-      topP: 0.95,
-      maxOutputTokens: 1024,
-    }
-  }
-
-  try {
-    const response = await fetch(`${GEMINI_ANALYSIS_URL}?key=${GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody)
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(`API 오류: ${errorData.error?.message || response.statusText}`)
-    }
-
-    const data = await response.json()
-    
-    if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-      throw new Error('AI 응답 형식이 올바르지 않습니다.')
-    }
-
-    return {
-      description: data.candidates[0].content.parts[0].text
-    }
-
-  } catch (error) {
-    console.error('Gemini API 호출 오류:', error)
-    return {
-      error: error.message
-    }
-  }
-}
-
-// AI 결과 표시
-async function displayAIResult(description) {
-  const generatedResult = document.getElementById('generatedResult')
-  const resultPlaceholder = document.getElementById('resultPlaceholder')
-  
-  // AI 설명을 시각적으로 표현하는 HTML 생성
-  const resultHTML = `
-    <div class="ai-result-content">
-      <div class="ai-description">
-        <h4>AI 분석 결과</h4>
-        <div class="description-text">${formatDescription(description)}</div>
-      </div>
-      <div class="material-preview-large ${selectedMaterial}">
-        <div class="preview-overlay">
-          <span>AI가 제안한 ${getMaterialName(selectedMaterial)} 적용</span>
-        </div>
-      </div>
-    </div>
-  `
-  
-  resultPlaceholder.innerHTML = resultHTML
-}
-
-// 설명 텍스트 포매팅
-function formatDescription(text) {
-  return text
-    .split('\n')
-    .map(line => line.trim())
-    .filter(line => line.length > 0)
-    .map(line => `<p>${line}</p>`)
-    .join('')
 }
 
 // 소재 이름 반환
@@ -348,26 +217,22 @@ function getMaterialName(material) {
   return names[material] || material
 }
 
-// 이미지 생성 프롬프트 생성
-function generateImagePrompt(analysisResult, material) {
-  const materialStyles = {
-    wood: 'natural wood grain texture, warm brown tones, organic wooden surface, realistic wood material',
-    metal: 'polished metal surface, reflective metallic finish, chrome or brushed steel appearance, industrial metal texture',
-    fabric: 'soft textile surface, fabric weave pattern, cloth material texture, natural fiber appearance',
-    leather: 'premium leather texture, smooth leather finish, rich brown leather surface, luxury leather material',
-    marble: 'elegant marble surface, natural stone veining, polished marble finish, sophisticated stone texture',
-    carbon: 'carbon fiber pattern, high-tech composite material, dark woven carbon texture, modern industrial finish'
+// 직접 이미지 생성 프롬프트
+function generateDirectImagePrompt(material) {
+  const materialPrompts = {
+    wood: 'High-quality product photography of a modern product with natural wood grain texture, warm brown wooden tones, organic wooden surface finish, realistic wood material, beautiful wood patterns and grain details',
+    metal: 'High-quality product photography of a sleek product with polished metal surface, reflective metallic finish, chrome or brushed steel appearance, industrial metal texture, mirror-like reflections',
+    fabric: 'High-quality product photography of an elegant product with soft textile surface, fabric weave pattern, cloth material texture, natural fiber appearance, cozy fabric texture',
+    leather: 'High-quality product photography of a luxury product with premium leather texture, smooth leather finish, rich brown leather surface, sophisticated leather material, natural leather grain',
+    marble: 'High-quality product photography of an elegant product with marble surface, natural stone veining patterns, polished marble finish, sophisticated white and gray marble texture, luxury stone material',
+    carbon: 'High-quality product photography of a high-tech product with carbon fiber pattern, advanced composite material, dark woven carbon texture, modern industrial finish, futuristic carbon weave'
   }
 
-  // 분석 결과에서 제품 유형 추출
-  const productMatch = analysisResult.match(/제품.*?[은는이가]\s*([^.]*)/i)
-  const productType = productMatch ? productMatch[1] : '제품'
-  
-  return `High-quality product photography of a ${productType} with ${materialStyles[material]}. 
+  return `${materialPrompts[material]}. 
 Professional studio lighting, clean white background, photorealistic rendering, 
-detailed ${material} surface texture, premium product design, 
-commercial product shot, ultra-high resolution, perfect lighting and shadows.
-Style: Modern, elegant, minimalist product photography.`
+premium product design, commercial product shot, ultra-high resolution, 
+perfect lighting and shadows, detailed surface texture.
+Style: Modern, elegant, minimalist product photography, luxury design aesthetic.`
 }
 
 // Gemini로 이미지 생성
@@ -493,7 +358,7 @@ async function generateFallbackImage(prompt) {
 }
 
 // 생성된 이미지 표시
-async function displayGeneratedImage(imageUrl, description) {
+async function displayGeneratedImage(imageUrl) {
   const generatedResult = document.getElementById('generatedResult')
   const resultPlaceholder = document.getElementById('resultPlaceholder')
   
@@ -501,18 +366,19 @@ async function displayGeneratedImage(imageUrl, description) {
   generatedResult.src = imageUrl
   generatedResult.style.display = 'block'
   
-  // 설명도 함께 표시
-  const descriptionDiv = document.createElement('div')
-  descriptionDiv.className = 'ai-description-overlay'
-  descriptionDiv.innerHTML = `
+  // 소재 정보 표시
+  const materialInfo = document.createElement('div')
+  materialInfo.className = 'ai-description-overlay'
+  materialInfo.innerHTML = `
     <div class="description-content">
-      <h4>AI 분석 및 생성 결과</h4>
-      <div class="description-text">${formatDescription(description)}</div>
+      <h4>AI 생성 결과</h4>
+      <p>선택한 소재: <strong>${getMaterialName(selectedMaterial)}</strong></p>
+      <p>AI가 ${getMaterialName(selectedMaterial)} 질감을 적용한 제품 이미지를 생성했습니다.</p>
     </div>
   `
   
   resultPlaceholder.innerHTML = ''
-  resultPlaceholder.appendChild(descriptionDiv)
+  resultPlaceholder.appendChild(materialInfo)
 }
 
 // 결과 액션 버튼
