@@ -43,13 +43,17 @@ export default async function handler(req, res) {
     // Google GenAI SDK 사용
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY)
     
-    console.log('이미지 생성 모델 호출...')
+    console.log('이미지 생성 모델 가져오기...')
     
-    // Gemini 2.5 Flash Image Preview 모델 사용
-    const response = await genAI.generateContent({
-      model: "gemini-2.5-flash-image-preview",
-      contents: prompt,
+    // 모델 객체 가져오기
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.5-flash-image-preview" 
     })
+    
+    console.log('이미지 생성 호출...')
+    
+    // 모델에서 generateContent 호출
+    const response = await model.generateContent(prompt)
 
     console.log('API 응답 받음, 후보자 수:', response.candidates?.length)
 
