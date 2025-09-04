@@ -452,3 +452,79 @@ footer {
         repeating-linear-gradient(45deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.03) 2px, transparent 2px, transparent 8px),
         repeating-linear-gradient(-45deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.03) 2px, transparent 2px, transparent 8px);
 }
+
+/* AI 분석 오버레이 스타일 */
+.ai-description-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(5px);
+    border-radius: 0 0 10px 10px;
+    max-height: 50%;
+    overflow-y: auto;
+}
+
+.description-content {
+    padding: 1rem;
+}
+
+.description-content h4 {
+    color: #4a5568;
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+}
+
+.description-content .description-text {
+    font-size: 0.8rem;
+    color: #718096;
+    line-height: 1.4;
+}
+
+.description-content .description-text p {
+    margin-bottom: 0.3rem;
+}
+
+/* 실제 이미지 결과 스타일 개선 */
+.result-item {
+    position: relative;
+}
+
+#generatedResult {
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease;
+}
+
+#generatedResult:hover {
+    transform: scale(1.02);
+}
+
+/* 로딩 개선 */
+.loading p {
+    color: #4a5568;
+    font-weight: 500;
+}
+
+/* 다운로드 버튼 스타일 개선 */
+.download-btn {
+    background: linear-gradient(135deg, #48bb78, #38a169);
+    color: white;
+    padding: 0.8rem 1.5rem;
+    border: none;
+    border-radius: 25px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.download-btn:hover {
+    background: linear-gradient(135deg, #38a169, #2f855a);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(72, 187, 120, 0.4);
+}

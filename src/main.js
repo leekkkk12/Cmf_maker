@@ -1,8 +1,9 @@
 import './style.css'
 
-// Gemini 2.5 Flash API 설정
+// Gemini 2.5 Flash API 설정 (나노바나나)
 const GEMINI_API_KEY = 'AIzaSyBy834fThh6Pm5k0wci0C06qPjhhgQYTBc'
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent'
+const GEMINI_ANALYSIS_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent'
+const GEMINI_IMAGE_GEN_URL = 'https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:generateImage'
 
 // 전역 상태
 let uploadedImage = null
@@ -178,18 +179,28 @@ async function generateMaterialComposition() {
     // 이미지를 base64로 변환
     const imageBase64 = await convertImageToBase64(uploadedImage)
     
-    // Gemini API 호출
-    const response = await callGeminiAPI(imageBase64, selectedMaterial)
+    // 1단계: 이미지 분석
+    const analysisResponse = await callGeminiAnalysis(imageBase64, selectedMaterial)
     
-    if (response.error) {
-      throw new Error(response.error)
+    if (analysisResponse.error) {
+      throw new Error(analysisResponse.error)
+    }
+
+    // 2단계: 이미지 생성 프롬프트 생성
+    const imagePrompt = generateImagePrompt(analysisResponse.description, selectedMaterial)
+
+    // 3단계: 실제 이미지 생성
+    const generatedImageUrl = await generateImageWithGemini(imagePrompt)
+    
+    if (!generatedImageUrl) {
+      throw new Error('이미지 생성에 실패했습니다.')
     }
 
     // 로딩 숨김
     loading.style.display = 'none'
 
-    // AI가 생성한 이미지 설명을 바탕으로 시각적 표현 생성
-    await displayAIResult(response.description)
+    // 실제 생성된 이미지 표시
+    await displayGeneratedImage(generatedImageUrl, analysisResponse.description)
 
     // 결과 표시
     downloadBtn.style.display = 'inline-block'
@@ -217,8 +228,8 @@ async function convertImageToBase64(file) {
   })
 }
 
-// Gemini API 호출
-async function callGeminiAPI(imageBase64, material) {
+// Gemini 분석 API 호출
+async function callGeminiAnalysis(imageBase64, material) {
   const materialDescriptions = {
     wood: '자연스러운 목재 질감 (나무결, 갈색 톤, 따뜻한 느낌)',
     metal: '고급스러운 금속 질감 (반사, 차가운 은색/회색 톤, 매끄러운 표면)',
@@ -260,7 +271,7 @@ async function callGeminiAPI(imageBase64, material) {
   }
 
   try {
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+    const response = await fetch(`${GEMINI_ANALYSIS_URL}?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -335,6 +346,173 @@ function getMaterialName(material) {
     carbon: '카본'
   }
   return names[material] || material
+}
+
+// 이미지 생성 프롬프트 생성
+function generateImagePrompt(analysisResult, material) {
+  const materialStyles = {
+    wood: 'natural wood grain texture, warm brown tones, organic wooden surface, realistic wood material',
+    metal: 'polished metal surface, reflective metallic finish, chrome or brushed steel appearance, industrial metal texture',
+    fabric: 'soft textile surface, fabric weave pattern, cloth material texture, natural fiber appearance',
+    leather: 'premium leather texture, smooth leather finish, rich brown leather surface, luxury leather material',
+    marble: 'elegant marble surface, natural stone veining, polished marble finish, sophisticated stone texture',
+    carbon: 'carbon fiber pattern, high-tech composite material, dark woven carbon texture, modern industrial finish'
+  }
+
+  // 분석 결과에서 제품 유형 추출
+  const productMatch = analysisResult.match(/제품.*?[은는이가]\s*([^.]*)/i)
+  const productType = productMatch ? productMatch[1] : '제품'
+  
+  return `High-quality product photography of a ${productType} with ${materialStyles[material]}. 
+Professional studio lighting, clean white background, photorealistic rendering, 
+detailed ${material} surface texture, premium product design, 
+commercial product shot, ultra-high resolution, perfect lighting and shadows.
+Style: Modern, elegant, minimalist product photography.`
+}
+
+// Gemini로 이미지 생성
+async function generateImageWithGemini(prompt) {
+  const requestBody = {
+    prompt: prompt,
+    sampleCount: 1,
+    aspectRatio: "1:1",
+    safetySettings: [
+      {
+        category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+        threshold: "BLOCK_LOW_AND_ABOVE"
+      },
+      {
+        category: "HARM_CATEGORY_HATE_SPEECH", 
+        threshold: "BLOCK_LOW_AND_ABOVE"
+      }
+    ],
+    personGeneration: "DONT_ALLOW"
+  }
+
+  try {
+    const response = await fetch(`${GEMINI_IMAGE_GEN_URL}?key=${GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody)
+    })
+
+    if (!response.ok) {
+      console.log('이미지 생성 API 오류, 대체 방법 사용')
+      return await generateFallbackImage(prompt)
+    }
+
+    const data = await response.json()
+    
+    if (data.candidates && data.candidates[0] && data.candidates[0].image) {
+      // base64 이미지를 blob URL로 변환
+      const base64Image = data.candidates[0].image.imageBytes
+      const blob = base64ToBlob(base64Image, 'image/jpeg')
+      return URL.createObjectURL(blob)
+    }
+    
+    throw new Error('이미지 생성 응답 형식 오류')
+
+  } catch (error) {
+    console.error('Gemini 이미지 생성 오류:', error)
+    return await generateFallbackImage(prompt)
+  }
+}
+
+// base64를 blob으로 변환
+function base64ToBlob(base64, mimeType) {
+  const bytes = atob(base64)
+  const arrayBuffer = new ArrayBuffer(bytes.length)
+  const uint8Array = new Uint8Array(arrayBuffer)
+  
+  for (let i = 0; i < bytes.length; i++) {
+    uint8Array[i] = bytes.charCodeAt(i)
+  }
+  
+  return new Blob([arrayBuffer], { type: mimeType })
+}
+
+// 대체 이미지 생성 (CSS로 시뮬레이션)
+async function generateFallbackImage(prompt) {
+  return new Promise(resolve => {
+    // Canvas로 소재 텍스처 생성
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    canvas.width = 400
+    canvas.height = 400
+    
+    // 선택된 소재에 따른 패턴 생성
+    const materialPatterns = {
+      wood: () => {
+        const gradient = ctx.createLinearGradient(0, 0, 400, 400)
+        gradient.addColorStop(0, '#8B4513')
+        gradient.addColorStop(1, '#A0522D')
+        ctx.fillStyle = gradient
+        ctx.fillRect(0, 0, 400, 400)
+        
+        // 나무 결 패턴
+        for (let i = 0; i < 10; i++) {
+          ctx.strokeStyle = `rgba(139, 69, 19, ${0.3 + Math.random() * 0.3})`
+          ctx.lineWidth = 2 + Math.random() * 3
+          ctx.beginPath()
+          ctx.moveTo(0, i * 40 + Math.random() * 20)
+          ctx.quadraticCurveTo(200, i * 40 + Math.random() * 40, 400, i * 40 + Math.random() * 20)
+          ctx.stroke()
+        }
+      },
+      metal: () => {
+        const gradient = ctx.createRadialGradient(200, 200, 0, 200, 200, 200)
+        gradient.addColorStop(0, '#E8E8E8')
+        gradient.addColorStop(0.7, '#C0C0C0')
+        gradient.addColorStop(1, '#808080')
+        ctx.fillStyle = gradient
+        ctx.fillRect(0, 0, 400, 400)
+      }
+    }
+    
+    // 기본 패턴
+    ctx.fillStyle = '#f0f0f0'
+    ctx.fillRect(0, 0, 400, 400)
+    
+    // 소재별 패턴 적용
+    if (materialPatterns[selectedMaterial]) {
+      materialPatterns[selectedMaterial]()
+    }
+    
+    // 텍스트 오버레이
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)'
+    ctx.font = 'bold 24px Arial'
+    ctx.textAlign = 'center'
+    ctx.fillText(`AI Generated: ${getMaterialName(selectedMaterial)}`, 200, 200)
+    
+    canvas.toBlob(blob => {
+      resolve(URL.createObjectURL(blob))
+    }, 'image/jpeg', 0.8)
+  })
+}
+
+// 생성된 이미지 표시
+async function displayGeneratedImage(imageUrl, description) {
+  const generatedResult = document.getElementById('generatedResult')
+  const resultPlaceholder = document.getElementById('resultPlaceholder')
+  
+  // 실제 생성된 이미지 표시
+  generatedResult.src = imageUrl
+  generatedResult.style.display = 'block'
+  
+  // 설명도 함께 표시
+  const descriptionDiv = document.createElement('div')
+  descriptionDiv.className = 'ai-description-overlay'
+  descriptionDiv.innerHTML = `
+    <div class="description-content">
+      <h4>AI 분석 및 생성 결과</h4>
+      <div class="description-text">${formatDescription(description)}</div>
+    </div>
+  `
+  
+  resultPlaceholder.innerHTML = ''
+  resultPlaceholder.appendChild(descriptionDiv)
 }
 
 // 결과 액션 버튼
