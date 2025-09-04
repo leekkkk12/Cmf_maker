@@ -1,3 +1,5 @@
+import { GoogleGenerativeAI } from '@google/generative-ai'
+
 export default async function handler(req, res) {
   // CORS 헤더 설정
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -36,83 +38,47 @@ export default async function handler(req, res) {
       })
     }
 
-    // Gemini Imagen 3.0 API 요청 형식 수정
-    const requestBody = {
-      prompt: prompt,
-      sampleCount: 1,
-      aspectRatio: "1:1",
-      safetySettings: [
-        {
-          category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-          threshold: "BLOCK_LOW_AND_ABOVE"
-        },
-        {
-          category: "HARM_CATEGORY_HATE_SPEECH", 
-          threshold: "BLOCK_LOW_AND_ABOVE"
-        },
-        {
-          category: "HARM_CATEGORY_HARASSMENT",
-          threshold: "BLOCK_LOW_AND_ABOVE"
-        },
-        {
-          category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-          threshold: "BLOCK_LOW_AND_ABOVE"
-        }
-      ],
-      personGeneration: "DONT_ALLOW"
-    }
-
-    console.log('Gemini API 호출 시작...')
-
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:generateImage?key=${GEMINI_API_KEY}`
+    console.log('Gemini SDK 초기화...')
     
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody)
+    // Google GenAI SDK 사용
+    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY)
+    
+    console.log('이미지 생성 모델 호출...')
+    
+    // Gemini 2.5 Flash Image Preview 모델 사용
+    const response = await genAI.generateContent({
+      model: "gemini-2.5-flash-image-preview",
+      contents: prompt,
     })
 
-    console.log('API 응답 상태:', response.status)
-    
-    // 응답 텍스트 먼저 읽기
-    const responseText = await response.text()
-    console.log('API 응답 텍스트 (처음 200자):', responseText.substring(0, 200))
+    console.log('API 응답 받음, 후보자 수:', response.candidates?.length)
 
-    if (!response.ok) {
-      let errorMessage = `HTTP ${response.status}: ${response.statusText}`
-      
-      try {
-        const errorData = JSON.parse(responseText)
-        errorMessage = errorData.error?.message || errorMessage
-      } catch (e) {
-        console.error('에러 응답 파싱 실패:', e)
+    if (!response.candidates || response.candidates.length === 0) {
+      throw new Error('응답에 후보자가 없습니다.')
+    }
+
+    const candidate = response.candidates[0]
+    if (!candidate.content || !candidate.content.parts) {
+      throw new Error('응답 구조가 올바르지 않습니다.')
+    }
+
+    console.log('응답 파트 수:', candidate.content.parts.length)
+
+    // 이미지 데이터 찾기
+    let imageData = null
+    for (const part of candidate.content.parts) {
+      if (part.inlineData && part.inlineData.data) {
+        imageData = part.inlineData.data
+        console.log('이미지 데이터 찾음, 크기:', imageData.length)
+        break
       }
-      
-      console.error('Gemini API 에러:', errorMessage)
-      return res.status(500).json({
-        success: false,
-        error: `Gemini API 오류: ${errorMessage}`
-      })
     }
 
-    let data
-    try {
-      data = JSON.parse(responseText)
-    } catch (e) {
-      console.error('JSON 파싱 오류:', e)
+    if (!imageData) {
+      console.error('이미지 데이터를 찾을 수 없음')
       return res.status(500).json({
         success: false,
-        error: '응답 파싱 오류'
-      })
-    }
-    
-    if (!data.candidates || !data.candidates[0] || !data.candidates[0].image) {
-      console.error('응답 형식 오류:', JSON.stringify(data, null, 2))
-      return res.status(500).json({
-        success: false,
-        error: '이미지 생성 실패 - 응답 형식 오류'
+        error: '이미지 데이터를 찾을 수 없습니다.'
       })
     }
 
@@ -121,7 +87,7 @@ export default async function handler(req, res) {
     // base64 이미지 데이터 반환
     res.status(200).json({
       success: true,
-      imageData: data.candidates[0].image.imageBytes
+      imageData: imageData
     })
 
   } catch (error) {
