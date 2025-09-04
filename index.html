@@ -3,42 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vite 웹페이지</title>
+    <title>CMF Design AI - 나노바나나</title>
 </head>
 <body>
     <header>
-        <h1>안녕하세요! 🚀</h1>
-        <p>Vite + Vercel로 배포한 웹페이지입니다</p>
+        <h1>CMF Design AI 🎨</h1>
+        <p>AI로 제품의 소재(CMF)를 변경해보세요</p>
     </header>
     
     <main>
-        <section class="hero">
-            <h2>환영합니다</h2>
-            <p>이 페이지는 Vite로 빌드되고 Vercel을 통해 배포되었습니다.</p>
-            <button class="cta-button">시작하기</button>
+        <section class="upload-section">
+            <h2>이미지 업로드</h2>
+            <div class="upload-container">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-content">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7,10 12,15 17,10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        <p>이미지를 드래그하거나 클릭해서 업로드</p>
+                        <p class="file-info">JPG, PNG, GIF (최대 10MB)</p>
+                    </div>
+                    <input type="file" id="imageInput" accept="image/*" hidden>
+                </div>
+                <div class="image-preview" id="imagePreview" style="display: none;">
+                    <img id="previewImg" alt="업로드된 이미지">
+                    <button class="remove-btn" id="removeBtn">×</button>
+                </div>
+            </div>
         </section>
-        
-        <section class="features">
-            <h3>특징</h3>
-            <div class="feature-grid">
-                <div class="feature-card">
-                    <h4>빠른 배포</h4>
-                    <p>Git과 연동하여 자동 배포</p>
+
+        <section class="material-section" id="materialSection" style="display: none;">
+            <h2>소재 선택</h2>
+            <div class="material-grid">
+                <div class="material-card" data-material="wood">
+                    <div class="material-preview wood"></div>
+                    <h3>나무</h3>
+                    <p>자연스러운 목재 질감</p>
                 </div>
-                <div class="feature-card">
-                    <h4>글로벌 CDN</h4>
-                    <p>전 세계 어디서나 빠른 로딩</p>
+                <div class="material-card" data-material="metal">
+                    <div class="material-preview metal"></div>
+                    <h3>메탈</h3>
+                    <p>고급스러운 금속 질감</p>
                 </div>
-                <div class="feature-card">
-                    <h4>무료 호스팅</h4>
-                    <p>개인 프로젝트는 무료로</p>
+                <div class="material-card" data-material="fabric">
+                    <div class="material-preview fabric"></div>
+                    <h3>패브릭</h3>
+                    <p>부드러운 직물 질감</p>
+                </div>
+                <div class="material-card" data-material="leather">
+                    <div class="material-preview leather"></div>
+                    <h3>가죽</h3>
+                    <p>세련된 가죽 질감</p>
+                </div>
+                <div class="material-card" data-material="marble">
+                    <div class="material-preview marble"></div>
+                    <h3>대리석</h3>
+                    <p>고급스러운 석재 질감</p>
+                </div>
+                <div class="material-card" data-material="carbon">
+                    <div class="material-preview carbon"></div>
+                    <h3>카본</h3>
+                    <p>모던한 카본파이버</p>
+                </div>
+            </div>
+            <button class="generate-btn" id="generateBtn" disabled>AI로 합성하기</button>
+        </section>
+
+        <section class="result-section" id="resultSection" style="display: none;">
+            <h2>결과</h2>
+            <div class="result-container">
+                <div class="result-comparison">
+                    <div class="result-item">
+                        <h3>원본</h3>
+                        <img id="originalResult" alt="원본 이미지">
+                    </div>
+                    <div class="result-item">
+                        <h3>AI 합성 결과</h3>
+                        <div class="result-placeholder" id="resultPlaceholder">
+                            <div class="loading" id="loading" style="display: none;">
+                                <div class="spinner"></div>
+                                <p>AI가 합성 중입니다...</p>
+                            </div>
+                            <img id="generatedResult" alt="AI 합성 결과" style="display: none;">
+                        </div>
+                    </div>
+                </div>
+                <div class="result-actions">
+                    <button class="download-btn" id="downloadBtn" style="display: none;">결과 다운로드</button>
+                    <button class="restart-btn" id="restartBtn">다시 시작</button>
                 </div>
             </div>
         </section>
     </main>
     
     <footer>
-        <p>&copy; 2024 My Website. Powered by Vite & Vercel</p>
+        <p>&copy; 2024 CMF Design AI. Powered by 나노바나나 & Vite</p>
     </footer>
     
     <script type="module" src="/src/main.js"></script>
