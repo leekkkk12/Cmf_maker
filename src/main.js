@@ -298,23 +298,49 @@ Style: Modern, elegant, minimalist product photography, luxury design aesthetic.
 async function generateImageWithGemini(prompt) {
   console.log('Gemini API 이미지 생성 시작:', prompt)
   
-  const response = await fetch(IMAGE_GENERATION_API, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ prompt })
-  })
+  try {
+    const response = await fetch(IMAGE_GENERATION_API, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ prompt })
+    })
 
-  const data = await response.json()
+    console.log('서버리스 함수 응답 상태:', response.status)
 
-  if (!data.success) {
-    throw new Error(data.error || '서버 오류')
+    // 응답이 JSON이 아닐 수 있으므로 먼저 텍스트로 읽기
+    const responseText = await response.text()
+    console.log('서버리스 함수 응답:', responseText.substring(0, 200))
+
+    let data
+    try {
+      data = JSON.parse(responseText)
+    } catch (e) {
+      console.error('JSON 파싱 오류:', e)
+      throw new Error('서버 응답을 처리할 수 없습니다.')
+    }
+
+    if (!response.ok) {
+      throw new Error(data.error || `HTTP ${response.status} 오류`)
+    }
+
+    if (!data.success) {
+      throw new Error(data.error || '이미지 생성 실패')
+    }
+
+    if (!data.imageData) {
+      throw new Error('이미지 데이터가 없습니다.')
+    }
+
+    // base64 이미지를 blob URL로 변환
+    const blob = base64ToBlob(data.imageData, 'image/jpeg')
+    return URL.createObjectURL(blob)
+
+  } catch (error) {
+    console.error('이미지 생성 전체 오류:', error)
+    throw error
   }
-
-  // base64 이미지를 blob URL로 변환
-  const blob = base64ToBlob(data.imageData, 'image/jpeg')
-  return URL.createObjectURL(blob)
 }
 
 // base64를 blob으로 변환
