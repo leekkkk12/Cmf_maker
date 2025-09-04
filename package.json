@@ -1,17 +1,17 @@
 {
-  "name": "simple-vercel-website",
+  "name": "vite-vercel-website",
   "version": "1.0.0",
-  "description": "간단한 Vercel 웹페이지 예제",
-  "main": "index.html",
+  "description": "Vite 기반 Vercel 웹페이지",
+  "type": "module",
   "scripts": {
-    "dev": "npx serve -s .",
-    "build": "echo 'Static site - no build needed'",
-    "start": "npx serve -s ."
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
-  "keywords": ["vercel", "static", "website", "html", "css"],
+  "keywords": ["vite", "vercel", "website"],
   "author": "Your Name",
   "license": "MIT",
   "devDependencies": {
-    "serve": "^14.0.0"
+    "vite": "^5.0.0"
   }
 }
