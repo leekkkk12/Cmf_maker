@@ -9,6 +9,10 @@
     <header>
         <h1>CMF Design AI 🎨</h1>
         <p>AI로 제품의 소재(CMF)를 변경해보세요</p>
+        <div class="version-info">
+            <span class="version">v1.3.0</span>
+            <button class="changelog-btn" id="changelogBtn">📋 업데이트 내역</button>
+        </div>
     </header>
     
     <main>
@@ -98,6 +102,64 @@
         </section>
     </main>
     
+    <!-- 변경 내역 모달 -->
+    <div class="changelog-modal" id="changelogModal">
+        <div class="changelog-content">
+            <div class="changelog-header">
+                <h3>🔄 업데이트 내역</h3>
+                <button class="close-btn" id="closeChangelogBtn">×</button>
+            </div>
+            <div class="changelog-body">
+                <div class="changelog-item new">
+                    <div class="changelog-date">2024.12.28</div>
+                    <div class="changelog-version">v1.3.0</div>
+                    <div class="changelog-title">🤖 Pure Gemini AI 모드</div>
+                    <ul class="changelog-details">
+                        <li>Canvas 대체 기능 완전 제거</li>
+                        <li>오직 Gemini API만 사용하여 고품질 이미지 생성</li>
+                        <li>300+ 라인 코드 최적화</li>
+                        <li>더 빠른 성능과 안정성 향상</li>
+                    </ul>
+                </div>
+                
+                <div class="changelog-item">
+                    <div class="changelog-date">2024.12.28</div>
+                    <div class="changelog-version">v1.2.0</div>
+                    <div class="changelog-title">🔧 CORS 문제 해결</div>
+                    <ul class="changelog-details">
+                        <li>Vercel 서버리스 함수로 API 호출 구조 변경</li>
+                        <li>환경변수를 통한 안전한 API 키 관리</li>
+                        <li>브라우저 CORS 정책 우회</li>
+                    </ul>
+                </div>
+                
+                <div class="changelog-item">
+                    <div class="changelog-date">2024.12.28</div>
+                    <div class="changelog-version">v1.1.0</div>
+                    <div class="changelog-title">🎨 Gemini API 통합</div>
+                    <ul class="changelog-details">
+                        <li>Gemini Imagen 3.0 API 연동</li>
+                        <li>실제 AI 이미지 생성 기능 구현</li>
+                        <li>6가지 소재별 전문 프롬프트 적용</li>
+                        <li>Canvas 기반 대체 이미지 생성 시스템</li>
+                    </ul>
+                </div>
+                
+                <div class="changelog-item">
+                    <div class="changelog-date">2024.12.28</div>
+                    <div class="changelog-version">v1.0.0</div>
+                    <div class="changelog-title">🚀 초기 출시</div>
+                    <ul class="changelog-details">
+                        <li>CMF 디자인 AI 웹사이트 런칭</li>
+                        <li>이미지 업로드 및 소재 선택 기능</li>
+                        <li>6가지 소재 지원 (나무, 메탈, 패브릭, 가죽, 대리석, 카본)</li>
+                        <li>Vite 기반 빠른 빌드 시스템</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <footer>
         <p>&copy; 2024 CMF Design AI. Powered by 나노바나나 & Vite</p>
     </footer>

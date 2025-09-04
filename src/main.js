@@ -16,6 +16,66 @@ function initializeApp() {
   setupMaterialSelection()
   setupGenerateButton()
   setupResultActions()
+  setupChangelog()
+  checkForUpdates()
+}
+
+// 변경 내역 기능
+function setupChangelog() {
+  const changelogBtn = document.getElementById('changelogBtn')
+  const changelogModal = document.getElementById('changelogModal')
+  const closeBtn = document.getElementById('closeChangelogBtn')
+
+  changelogBtn.addEventListener('click', () => {
+    changelogModal.style.display = 'flex'
+    // 새 업데이트 표시 제거
+    localStorage.setItem('lastViewedVersion', '1.3.0')
+    updateVersionDisplay()
+  })
+
+  closeBtn.addEventListener('click', () => {
+    changelogModal.style.display = 'none'
+  })
+
+  changelogModal.addEventListener('click', (e) => {
+    if (e.target === changelogModal) {
+      changelogModal.style.display = 'none'
+    }
+  })
+}
+
+// 업데이트 확인
+function checkForUpdates() {
+  const currentVersion = '1.3.0'
+  const lastViewedVersion = localStorage.getItem('lastViewedVersion')
+  
+  if (!lastViewedVersion || lastViewedVersion !== currentVersion) {
+    // 새 업데이트 알림
+    showUpdateNotification()
+    updateVersionDisplay(true)
+  } else {
+    updateVersionDisplay(false)
+  }
+}
+
+// 버전 표시 업데이트
+function updateVersionDisplay(hasUpdate = false) {
+  const changelogBtn = document.getElementById('changelogBtn')
+  
+  if (hasUpdate) {
+    changelogBtn.classList.add('has-update')
+    changelogBtn.innerHTML = '🔔 새 업데이트!'
+  } else {
+    changelogBtn.classList.remove('has-update')
+    changelogBtn.innerHTML = '📋 업데이트 내역'
+  }
+}
+
+// 업데이트 알림
+function showUpdateNotification() {
+  setTimeout(() => {
+    showNotification('🎉 v1.3.0 업데이트! Pure Gemini AI 모드로 업그레이드되었습니다.', 'info')
+  }, 2000)
 }
 
 // 이미지 업로드 기능
