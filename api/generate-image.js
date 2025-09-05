@@ -45,60 +45,47 @@ export default async function handler(req, res) {
     
     console.log('이미지 생성 모델 가져오기...')
     
-    // 모델 객체 가져오기
+    // Gemini 2.5 Flash Image Preview 모델 사용
     const model = genAI.getGenerativeModel({ 
       model: "gemini-2.5-flash-image-preview" 
     })
     
-    console.log('이미지 생성 호출...')
+    console.log('Gemini 2.5 이미지 생성 호출...')
     
-    // 모델에서 generateContent 호출
-    const response = await model.generateContent(prompt)
-
-    // 전체 응답 구조 로깅
+    // 이미지 생성 요청 (text-to-image)
+    const response = await model.generateContent([{
+      text: `Generate an image: ${prompt}`
+    }])
+    
     console.log('전체 응답 구조:', JSON.stringify(response, null, 2))
     
-    // response.response 확인 (중첩 구조일 수 있음)
-    const actualResponse = response.response || response
-    console.log('실제 응답:', JSON.stringify(actualResponse, null, 2))
-    
-    console.log('API 응답 받음, 후보자 수:', actualResponse.candidates?.length)
+    const result = response.response || response
+    console.log('실제 응답:', JSON.stringify(result, null, 2))
 
-    if (!actualResponse.candidates || actualResponse.candidates.length === 0) {
-      console.error('후보자 없음. 전체 응답:', JSON.stringify(response, null, 2))
+    if (!result.candidates || result.candidates.length === 0) {
       throw new Error('응답에 후보자가 없습니다.')
     }
 
-    const candidate = actualResponse.candidates[0]
+    const candidate = result.candidates[0]
     console.log('후보자 구조:', JSON.stringify(candidate, null, 2))
     
-    if (!candidate.content || !candidate.content.parts) {
-      console.error('콘텐츠 구조 오류. 후보자:', JSON.stringify(candidate, null, 2))
-      throw new Error('응답 구조가 올바르지 않습니다.')
-    }
-
-    console.log('응답 파트 수:', candidate.content.parts.length)
-
     // 이미지 데이터 찾기
     let imageData = null
-    for (const part of candidate.content.parts) {
-      console.log('파트 구조:', JSON.stringify(part, null, 2))
-      if (part.inlineData && part.inlineData.data) {
-        imageData = part.inlineData.data
-        console.log('이미지 데이터 찾음, 크기:', imageData.length)
-        break
+    if (candidate.content && candidate.content.parts) {
+      for (const part of candidate.content.parts) {
+        if (part.inlineData && part.inlineData.data) {
+          imageData = part.inlineData.data
+          console.log('이미지 데이터 찾음, 크기:', imageData.length)
+          break
+        }
       }
     }
 
     if (!imageData) {
-      console.error('이미지 데이터를 찾을 수 없음')
-      return res.status(500).json({
-        success: false,
-        error: '이미지 데이터를 찾을 수 없습니다.'
-      })
+      throw new Error('이미지 데이터를 찾을 수 없습니다. 모델이 텍스트만 생성했을 수 있습니다.')
     }
 
-    console.log('이미지 생성 성공')
+    console.log('Gemini 2.5 이미지 생성 성공, 크기:', imageData.length)
     
     // base64 이미지 데이터 반환
     res.status(200).json({
