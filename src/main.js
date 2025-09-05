@@ -237,24 +237,30 @@ async function generateMaterialComposition() {
     // 이미지 생성 프롬프트 생성
     const imagePrompt = generateDirectImagePrompt(selectedMaterial)
 
-    // 실제 이미지 생성
-    const generatedImageUrl = await generateImageWithGemini(imagePrompt)
-    
-    if (!generatedImageUrl) {
-      throw new Error('이미지 생성에 실패했습니다.')
+    try {
+      // 실제 이미지 생성 시도
+      const generatedImageUrl = await generateImageWithGemini(imagePrompt)
+      
+      if (!generatedImageUrl) {
+        throw new Error('이미지 생성에 실패했습니다.')
+      }
+
+      // 로딩 숨김
+      loading.style.display = 'none'
+
+      // 실제 생성된 이미지 표시
+      await displayGeneratedImage(generatedImageUrl)
+
+      // 결과 표시
+      downloadBtn.style.display = 'inline-block'
+
+      // 성공 메시지
+      showNotification('Gemini AI 이미지 생성 완료! 🤖', 'success')
+
+    } catch (imageError) {
+      // 이미지 생성 실패 시 에러로 던지기
+      throw imageError
     }
-
-    // 로딩 숨김
-    loading.style.display = 'none'
-
-    // 실제 생성된 이미지 표시
-    await displayGeneratedImage(generatedImageUrl)
-
-    // 결과 표시
-    downloadBtn.style.display = 'inline-block'
-
-    // 성공 메시지
-    showNotification('Gemini AI 이미지 생성 완료! 🤖', 'success')
 
   } catch (error) {
     console.error('Gemini AI 생성 오류:', error)
@@ -381,6 +387,7 @@ async function displayGeneratedImage(imageUrl) {
   resultPlaceholder.innerHTML = ''
   resultPlaceholder.appendChild(materialInfo)
 }
+
 
 // 결과 액션 버튼
 function setupResultActions() {
